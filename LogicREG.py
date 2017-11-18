@@ -1,6 +1,6 @@
 import numpy
 import math
-
+import random
 def cal_gradient(x, y, w):
     """
     :param x: numpy vector, 增广特征向量
@@ -14,4 +14,13 @@ def cal_gradient(x, y, w):
     return (exp_xw/(1+exp_xw)-y)*x
 
 
-
+def split_dataset(data, num):
+    data_list = []
+    val_size = len(data) // num
+    for k in range(num - 1):
+        t_data = []
+        for i in range(val_size):
+            t_data.append(data.pop(random.randint(0, len(data) - 1)))
+        data_list.append(t_data)
+    data_list.append(data)
+    return data_list
