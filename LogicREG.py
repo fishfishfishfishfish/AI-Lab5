@@ -105,20 +105,24 @@ def cal_gradient(x, y, w):
 def train(traindata, eta):
     logger = logging.getLogger("loggingmodule.NomalLogger")
     w = numpy.ones(len(traindata[0])-1)
-    # w = numpy.array([-3, 1, 1])
+    last_likehood = -20
     cnt = 0
-    while cnt < 1000:
+    while cnt < 5000:
         grad_sum = numpy.zeros(len(traindata[0])-1)
         likehood = 0
-        i = 0
         for d in traindata:
             grad_sum += cal_gradient(d[0:len(d)-1], d[len(d)-1], w)
             likehood += cal_likehood(d[0:len(d)-1], d[len(d)-1], w)
-            # print(cnt, i)
-            i = i+1
         w = w - eta*grad_sum
-        logger.debug(grad_sum[20:25])
-        # logger.info(likehood)
+        if cnt != 0:
+            if likehood < last_likehood:
+                eta -= 0.0000005
+                logger.debug("active1 eta=%f" % eta)
+            elif likehood - last_likehood < 0.1 and likehood - last_likehood > 0:
+                eta += 0.0000001
+                logger.debug("active2 eta=%f" % eta)
+        last_likehood = likehood
+        logger.info(likehood)
         cnt += 1
     return w
 
@@ -154,9 +158,10 @@ DataSet = split_dataset(Data, Sfold)
 # S份中取出一份作为验证集，其余构成训练集
 for k in range(Sfold):
     TrainData, ValData = get_train_and_val(DataSet, k)
-    W = train(TrainData, 0.00001)
+    W = train(TrainData, 0.000011)
     print(W)
-    Logger.debug("--------------------------------")
+    Logger.debug("-------------训练集反验证后的置信度-------------------")
     print(val(TrainData, W))
+    Logger.debug("-------------验证集验证后的置信度-------------------")
     print(val(ValData, W))
     break
