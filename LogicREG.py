@@ -31,6 +31,7 @@ def get_train_data(filename):
         row = line.split(',')
         for i in range(len(row)):
             row[i] = float(row[i])
+        row.insert(0, 1)
         row = numpy.array(row)
         data.append(row)
     return data
@@ -65,7 +66,7 @@ def get_train_and_val(dataset, n):
     traindata = []
     for i in range(len(dataset)):
         if i != n:
-            traindata += DataSet[i]
+            traindata += dataset[i]
     valdata = dataset[n]  # 剩下的一份作为验证集
     return traindata, valdata
 
@@ -81,38 +82,43 @@ def cal_gradient(x, y, w):
     logger = logging.getLogger("loggingmodule.NomalLogger")
     x = numpy.array(x)
     w = numpy.array(w)
-    # logger.debug(numpy.dot(x, w))
     exp_xw = math.e**(-numpy.dot(x, w))
     return (1/(1+exp_xw)-y)*x
 
 
 def train(traindata, eta):
     logger = logging.getLogger("loggingmodule.NomalLogger")
-    w = numpy.zeros(len(traindata[0])-1)
+    w = numpy.ones(len(traindata[0])-1)
     cnt = 0
-    while cnt < 1000:
+    while cnt < 10:
         grad_sum = numpy.zeros(len(traindata[0])-1)
         for d in traindata:
             grad_sum += cal_gradient(d[0:len(d)-1], d[len(d)-1], w)
         w = w + eta*grad_sum
         logger.debug(grad_sum)
-        logger.info(w)
+        # logger.info(w)
         cnt += 1
     return w
 
 
 # 获取日志输出器
 Logger = get_logger()
-# 读取训练数据，根据S折交叉验证切割
-Data = get_train_data('train.csv')
-Sfold = 10
-DataSet = split_dataset(Data, Sfold)
-Logger.debug("DataSet is : \n")
-Logger.debug(numpy.array(DataSet))
-# S份中取出一份作为验证集，其余构成训练集
-for k in range(Sfold):
-    TrainData, ValData = get_train_and_val(DataSet, k)
-    train(TrainData, 0.1)
+# ---------------小数据集------------------
+Data = get_train_data('small-train.csv')
+print(Data)
+train(Data, 0.1)
+# ----------------------------------
+# # 读取训练数据，根据S折交叉验证切割
+# Data = get_train_data('train.csv')
+# Sfold = 10
+# DataSet = split_dataset(Data, Sfold)
+# Logger.debug("DataSet is : \n")
+# Logger.debug(numpy.array(DataSet))
+# # S份中取出一份作为验证集，其余构成训练集
+# for k in range(Sfold):
+#     TrainData, ValData = get_train_and_val(DataSet, k)
+#     print(train(TrainData, 0.1))
+
 
 
 
