@@ -71,6 +71,21 @@ def get_train_and_val(dataset, n):
     return traindata, valdata
 
 
+# 计算对数似然值
+def cal_likehood(x, y, w):
+    """
+    :param x: numpy vector, 增广特征向量
+    :param y: int, x对应的结果
+    :param w: numpy vector, 增广权向量
+    :return: int, 对数似然值
+    """
+    x = numpy.array(x)
+    w = numpy.array(w)
+    xw = numpy.dot(x, w)
+    exp_xw = math.e ** (xw)
+    return y*xw-math.log(1+exp_xw,math.e)
+
+
 # 计算一行x和当前w计算得到的梯度值
 def cal_gradient(x, y, w):
     """
@@ -82,43 +97,66 @@ def cal_gradient(x, y, w):
     logger = logging.getLogger("loggingmodule.NomalLogger")
     x = numpy.array(x)
     w = numpy.array(w)
-    exp_xw = math.e**(-numpy.dot(x, w))
+    nxw = -numpy.dot(x, w)
+    exp_xw = math.exp(nxw)
     return (1/(1+exp_xw)-y)*x
 
 
 def train(traindata, eta):
     logger = logging.getLogger("loggingmodule.NomalLogger")
     w = numpy.ones(len(traindata[0])-1)
+    # w = numpy.array([-3, 1, 1])
     cnt = 0
-    while cnt < 10:
+    while cnt < 1000:
         grad_sum = numpy.zeros(len(traindata[0])-1)
+        likehood = 0
+        i = 0
         for d in traindata:
             grad_sum += cal_gradient(d[0:len(d)-1], d[len(d)-1], w)
-        w = w + eta*grad_sum
-        logger.debug(grad_sum)
-        # logger.info(w)
+            likehood += cal_likehood(d[0:len(d)-1], d[len(d)-1], w)
+            # print(cnt, i)
+            i = i+1
+        w = w - eta*grad_sum
+        logger.debug(grad_sum[20:25])
+        # logger.info(likehood)
         cnt += 1
     return w
 
 
+def val(valdata, w):
+    logger = logging.getLogger("loggingmodule.NomalLogger")
+    correction = 0
+    for vd in valdata:
+        confidence = numpy.dot(vd[0:len(vd)-1], w)
+        confidence = 1/(1 + math.exp(-confidence))
+        logger.debug(confidence)
+        predict_res = 0
+        if confidence >= 0.5:
+            predict_res = 1
+
+        if predict_res == vd[len(vd)-1]:
+            correction += 1
+    return correction/len(valdata)
+
+
 # 获取日志输出器
 Logger = get_logger()
-# ---------------小数据集------------------
-Data = get_train_data('small-train.csv')
-print(Data)
-train(Data, 0.1)
-# ----------------------------------
-# # 读取训练数据，根据S折交叉验证切割
-# Data = get_train_data('train.csv')
-# Sfold = 10
-# DataSet = split_dataset(Data, Sfold)
-# Logger.debug("DataSet is : \n")
+# ---------------------小数据集----------------------
+# Data = get_train_data('small-train.csv')
+# print(Data)
+# train(Data, 1)
+# -------读取训练数据，根据S折交叉验证切割-------------
+Data = get_train_data('train.csv')
+Sfold = 10
+DataSet = split_dataset(Data, Sfold)
+# Logger.info("DataSet is : ")
 # Logger.debug(numpy.array(DataSet))
-# # S份中取出一份作为验证集，其余构成训练集
-# for k in range(Sfold):
-#     TrainData, ValData = get_train_and_val(DataSet, k)
-#     print(train(TrainData, 0.1))
-
-
-
-
+# S份中取出一份作为验证集，其余构成训练集
+for k in range(Sfold):
+    TrainData, ValData = get_train_and_val(DataSet, k)
+    W = train(TrainData, 0.00001)
+    print(W)
+    Logger.debug("--------------------------------")
+    print(val(TrainData, W))
+    print(val(ValData, W))
+    break
